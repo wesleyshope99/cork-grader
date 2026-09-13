@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Cork Grader</title>
+<meta name="theme-color" content="#141416" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cork Grader" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Cork Grader</h1>
+  <div id="storage-banner" class="storage-banner" hidden></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="grade">Grade</button>
+  <button class="tab-btn" data-tab="library">Library</button>
+  <button class="tab-btn" data-tab="log">Log</button>
+</nav>
+
+<main>
+
+  <!-- ===================== GRADE TAB (Workflow 2) ===================== -->
+  <section id="tab-grade" class="tab-panel active">
+
+    <div id="grade-no-model" class="panel-message" hidden>
+      <p>No trained model yet.</p>
+      <p class="muted">Add reference photos in the Library tab (at least a couple per grade), then tap "Train model" there.</p>
+    </div>
+
+    <div id="grade-calibrate-prompt" class="panel-message" hidden>
+      <p>Camera not calibrated yet.</p>
+      <button id="btn-start-calibration" class="btn-primary">Calibrate camera position</button>
+    </div>
+
+    <!-- Calibration flow -->
+    <div id="calibration-screen" hidden>
+      <p class="hint">Place a disk in the fixture. Drag to move the circle, pinch or scroll to resize it, until it exactly outlines the disk.</p>
+      <div class="video-wrap">
+        <video id="calib-video" playsinline autoplay muted></video>
+        <canvas id="calib-overlay"></canvas>
+      </div>
+      <div class="row">
+        <span class="muted">Preview:</span>
+        <canvas id="calib-preview" width="300" height="300" class="preview-canvas small"></canvas>
+      </div>
+      <div class="row">
+        <button id="btn-confirm-calibration" class="btn-primary">Confirm calibration</button>
+        <button id="btn-cancel-calibration" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Live grading flow -->
+    <div id="grading-screen" hidden>
+      <div class="row spread">
+        <label class="muted">Session diameter (mm, optional)
+          <input id="session-diameter" type="number" inputmode="decimal" placeholder="—" />
+        </label>
+        <button id="btn-recalibrate" class="btn-link">Recalibrate</button>
+      </div>
+
+      <div class="video-wrap">
+        <video id="grade-video" playsinline autoplay muted></video>
+        <canvas id="grade-overlay"></canvas>
+        <div id="grade-result-overlay" class="result-overlay" hidden>
+          <span id="grade-result-letter"></span>
+        </div>
+      </div>
+
+      <p id="grade-status" class="hint">Show a disk to the camera…</p>
+
+      <div class="row">
+        <button id="btn-manual-grade" class="btn-primary btn-large">Tap to grade</button>
+      </div>
+
+      <p class="muted small">Last graded: <span id="last-graded">—</span></p>
+    </div>
+
+  </section>
+
+  <!-- ===================== LIBRARY TAB (Workflow 1) ===================== -->
+  <section id="tab-library" class="tab-panel">
+
+    <div class="row">
+      <button id="btn-add-reference" class="btn-primary">+ Add reference disk</button>
+    </div>
+
+    <div class="row">
+      <div id="grade-counts" class="grade-counts"></div>
+    </div>
+
+    <div class="row spread">
+      <button id="btn-train" class="btn-primary">Train model</button>
+      <span id="train-status" class="muted small"></span>
+    </div>
+    <div id="train-progress-wrap" class="progress-wrap" hidden>
+      <div id="train-progress-bar" class="progress-bar"></div>
+    </div>
+
+    <h2 class="section-title">Reference photos</h2>
+    <div id="library-grid" class="library-grid"></div>
+
+    <!-- Capture flow -->
+    <div id="capture-screen" class="modal" hidden>
+      <div class="modal-inner">
+        <div id="capture-step-file">
+          <p class="hint">Take or choose a photo of a disk you've already graded by hand.</p>
+          <input id="capture-file-input" type="file" accept="image/*" capture="environment" />
+        </div>
+
+        <div id="capture-step-crop" hidden>
+          <p class="hint">Drag to pan, pinch or scroll to zoom, until the disk exactly fills the circle.</p>
+          <canvas id="crop-canvas" width="300" height="300" class="preview-canvas"></canvas>
+          <div class="row">
+            <button id="btn-crop-next" class="btn-primary">Next</button>
+            <button id="btn-crop-cancel" class="btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <div id="capture-step-details" hidden>
+          <canvas id="details-thumb" width="150" height="150" class="preview-canvas small"></canvas>
+          <label>Diameter (mm)
+            <input id="input-diameter" type="number" inputmode="decimal" required />
+          </label>
+          <label>Grade
+            <select id="input-grade">
+              <option value="Flor">Flor</option>
+              <option value="Extra">Extra</option>
+              <option value="AAA">AAA</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </label>
+          <label>Note (optional)
+            <input id="input-note" type="text" />
+          </label>
+          <div class="row">
+            <button id="btn-save-reference" class="btn-primary">Save to library</button>
+            <button id="btn-details-back" class="btn-secondary">Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===================== LOG TAB ===================== -->
+  <section id="tab-log" class="tab-panel">
+    <div class="row spread">
+      <select id="log-date-select"></select>
+      <span id="log-count" class="muted"></span>
+    </div>
+
+    <table id="log-table" class="log-table">
+      <thead><tr><th>Time</th><th>Grade</th><th>Confidence</th><th>Diameter</th></tr></thead>
+      <tbody id="log-table-body"></tbody>
+    </table>
+
+    <div class="row">
+      <button id="btn-export-day" class="btn-primary">Export this day (.xlsx)</button>
+      <button id="btn-export-all" class="btn-secondary">Export all (.xlsx)</button>
+    </div>
+    <div class="row">
+      <button id="btn-view-text" class="btn-link">View as text instead</button>
+    </div>
+    <p id="export-status" class="muted small"></p>
+
+    <div id="text-export-modal" class="modal" hidden>
+      <div class="modal-inner">
+        <p class="hint">Tap inside, select all, and copy.</p>
+        <textarea id="text-export-area" readonly rows="14"></textarea>
+        <button id="btn-close-text-export" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="vendor/tf.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
