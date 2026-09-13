@@ -44,11 +44,16 @@ async function initStorageBanner() {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => {
+  const register = () => {
     navigator.serviceWorker.register('service-worker.js').catch((err) => {
       console.warn('Service worker registration failed:', err);
     });
-  });
+  };
+  // app.js is a module script (deferred by default), so document 'load' may
+  // already have fired by the time this runs -- check first instead of
+  // registering a listener that will never see the event.
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register);
 }
 
 async function main() {
